@@ -25640,9 +25640,6 @@ local render do
                     position.y = position.y + round(measure.y)
                 end
 
-                -- ============================================================
-                -- НОВАЯ ФУНКЦИЯ draw_title с разделением script_name и script_build
-                -- ============================================================
                 local function draw_title(position, r1, g1, b1, a1, r2, g2, b2, a2)
                     local time = -globals.realtime()
                     local style = ref.style:get()
@@ -25676,13 +25673,9 @@ local render do
                     if style == 'Default' then
                         -- 1. Рисуем название (серый/белый)
                         renderer.text(x, y, 220, 220, 220, a1, '-', nil, title_text)
-                        x = x + title_measure.x
+                        x = x + title_measure.x + gap_pixels
 
-                        -- 2. Рисуем пробел
-                        renderer.text(x, y, 220, 220, 220, a1, '-', nil, ' ')
-                        x = x + space_measure.x
-
-                        -- 3. Рисуем билд с градиентом
+                        -- 2. Рисуем билд с градиентом
                         local gradient_text = text_anims.gradient(
                             build_text, time * 1.25,
                             r1, g1, b1, a1,
@@ -25693,13 +25686,9 @@ local render do
                     elseif style == 'Astolfo' then
                         -- 1. Рисуем название (серый)
                         renderer.text(x, y, 220, 220, 220, a1, '-', nil, title_text)
-                        x = x + title_measure.x
+                        x = x + title_measure.x + gap_pixels
 
-                        -- 2. Рисуем пробел
-                        renderer.text(x, y, 220, 220, 220, a1, '-', nil, ' ')
-                        x = x + space_measure.x
-
-                        -- 3. Рисуем билд с астольфо анимацией
+                        -- 2. Рисуем билд с астольфо анимацией
                         local astolfo_text = text_anims.astolfo(
                             build_text, time * 0.5,
                             0.5, 0.4, 1.0, 0.5
