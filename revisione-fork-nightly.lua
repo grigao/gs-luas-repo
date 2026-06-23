@@ -18123,7 +18123,7 @@ local main do
         local function prefixf(str)
             local hex = software.get_color(true)
 
-            return '\a'.. hex .. '[Cryonova] '..
+            return '\a'.. hex .. '[gamesense] '..
                    '\aDEFAULT' .. str
         end
 
@@ -25619,11 +25619,10 @@ local render do
 
                     position.y = position.y + height * 0.5
                 end
-
                 local state_x_marker = 'x'
                 local state_x_measure = vector(renderer.measure_text('-', state_x_marker))
                 local state_gap = 2
-                local state_shift = 4
+                local state_shift = 4  -- смещение для текста и правого крестика
 
                 local function draw_state(position, r, g, b, a, alpha)
                     local state_text = get_state()
@@ -25631,8 +25630,8 @@ local render do
 
                     local text_measure = vector(renderer.measure_text(flags, state_text))
 
-                    -- Общая ширина: крестик + отступ со сдвигом + текст + отступ + крестик
-                    local total_width = state_x_measure.x + state_gap + state_shift + text_measure.x + state_gap + state_x_measure.x
+                    -- Общая ширина с учетом shift (для правильного центрирования)
+                    local total_width = state_x_measure.x + state_gap + state_shift + text_measure.x + state_gap + state_x_measure.x + 4
 
                     local x, y = position.x, position.y do
                         x = round(x - (total_width * 0.5) * (1 - align_value))
@@ -25640,13 +25639,13 @@ local render do
 
                     -- Левый крестик (на 1px выше)
                     renderer.text(x, y - 1, 200, 200, 200, a * alpha, flags, nil, state_x_marker)
-                    x = x + state_x_measure.x + state_gap + state_shift
+                    x = x + state_x_measure.x + state_gap
 
-                    -- Текст (на 1px ниже)
-                    renderer.text(x, y, r, g, b, a * alpha, flags, nil, state_text)
-                    x = x + text_measure.x + state_gap
+                    -- Текст (на 1px ниже) - сдвигаем вправо на state_shift
+                    renderer.text(x + state_shift, y, r, g, b, a * alpha, flags, nil, state_text)
+                    x = x + state_shift + text_measure.x + state_gap
 
-                    -- Правый крестик (на 1px выше)
+                    -- Правый крестик (на 1px выше) - уже на правильной позиции
                     renderer.text(x, y - 1, 200, 200, 200, a * alpha, flags, nil, state_x_marker)
 
                     position.y = position.y + math.max(state_x_measure.y, text_measure.y)
@@ -25889,92 +25888,9 @@ local render do
                     }
                 end
 
-                local function draw_command_bar(position, r1, g1, b1, a1, r2, g2, b2, a2)
-                    local alpha = utils.clamp(alpha_value, 0, 1)
+                -- local function draw_command_bar(position, r1, g1, b1, a1, r2, g2, b2, a2)
 
-                    if alpha <= 0 then
-                        return
-                    end
-
-                    local items = { }
-
-                    -- Используем разделенный title для Command Bar
-                    local title_text = SCRIPT_NAME:upper()
-                    local build_text = SCRIPT_BUILD:upper()
-                    local full_title = title_text .. '  ' .. build_text  -- два пробела
-                    
-                    add_command_item(items, full_title, true, r1, g1, b1, 235)
-
-                    if ref.select:get 'State' then
-                        add_command_item(items, get_state(), true, 230, 230, 235, 185)
-                    end
-
-                    if ref.select:get 'Double tap' then
-                        local charge = math.floor(utils.clamp(charge_value, 0, 1) * 100 + 0.5)
-                        local active = software.is_double_tap_active()
-                        add_command_item(items, 'DT ' .. tostring(charge), active, active and r1 or 145, active and g1 or 145, active and b1 or 145, active and 220 or 105)
-                    end
-
-                    if ref.select:get 'Hide shots' then
-                        local active = software.is_on_shot_antiaim_active()
-                        add_command_item(items, 'HS', active, active and 245 or 145, active and 245 or 145, active and 245 or 145, active and 205 or 95)
-                    end
-
-                    if ref.select:get 'Body aim' then
-                        local active = ui.get(software.ragebot.aimbot.force_body_aim)
-                        add_command_item(items, 'BODY', active, active and 255 or 145, active and 215 or 145, active and 120 or 145, active and 220 or 95)
-                    end
-
-                    if ref.select:get 'Hitchance' then
-                        local active = session.hitchance.updated_hotkey and session.hitchance.updated_this_tick
-                        add_command_item(items, 'HC', active, active and 165 or 145, active and 235 or 145, active and 255 or 145, active and 210 or 95)
-                    end
-
-                    if software.is_override_minimum_damage() then
-                        add_command_item(items, 'DMG ' .. tostring(software.get_override_damage()), true, 255, 255, 255, 220)
-                    end
-
-                    if software.is_freestanding() then
-                        add_command_item(items, 'FS', true, 190, 225, 255, 210)
-                    end
-
-                    if #items == 0 then
-                        return
-                    end
-
-                    local pad_x, pad_y = 7, 5
-                    local row_gap = 1
-                    local width = 0
-                    local row_height = 0
-
-                    for i = 1, #items do
-                        local size = command_text_size(items[i].label)
-                        width = math.max(width, size.x)
-                        row_height = math.max(row_height, size.y)
-                    end
-
-                    width = width + pad_x * 2
-                    local height = pad_y * 2 + (#items * row_height) + math.max(#items - 1, 0) * row_gap
-                    local x = round(position.x - width * 0.5 + 8 * align_value)
-                    local y = round(position.y)
-                    local line_alpha = 150 * alpha
-
-                    renderer.gradient(x, y, width * 0.5, 1, r2, g2, b2, 0, r1, g1, b1, line_alpha, true)
-                    renderer.gradient(x + width * 0.5, y, width * 0.5, 1, r1, g1, b1, line_alpha, r2, g2, b2, 0, true)
-
-                    local text_x = x + math.floor(width * 0.5)
-                    local cursor_y = y + pad_y + math.floor(row_height * 0.5)
-
-                    for i = 1, #items do
-                        local item = items[i]
-                        local item_alpha = item.a * alpha
-
-                        renderer.text(text_x + 1, cursor_y + 1, 0, 0, 0, 115 * alpha, '-c', 0, item.label)
-                        renderer.text(text_x, cursor_y, item.r, item.g, item.b, item_alpha, '-c', 0, item.label)
-
-                        cursor_y = cursor_y + row_height + row_gap
-                    end
-                end
+                -- end
 
                 local function update_values(me)
                     local is_alive = entity.is_alive(me)
@@ -26038,7 +25954,7 @@ local render do
                     local style = ref.style:get()
 
                     if style == 'Command Bar' then
-                        draw_command_bar(position, r1, g1, b1, a1, r2, g2, b2, a2)
+                        -- draw_command_bar(position, r1, g1, b1, a1, r2, g2, b2, a2)
                         return
                     end
 
@@ -26108,8 +26024,8 @@ local render do
 
         local manual_arrows do
             local ref = resource.antiaim.hotkeys.manual_yaw
-
             local COLOR_DISABLED = color(0, 0, 0, 127)
+            local arrow_flag = '+'
 
             local function on_draw_classic()
                 local me = entity.get_local_player()
@@ -26133,7 +26049,7 @@ local render do
                     local text = ''
 
                     local text_size = vector(
-                        renderer.measure_text('+', text)
+                        renderer.measure_text(arrow_flag, text)
                     )
 
                     local text_pos = vector(
@@ -26141,14 +26057,14 @@ local render do
                         center.y - text_size.y * 0.5 - 4.5
                     )
 
-                    renderer.text(text_pos.x, text_pos.y, col.r, col.g, col.b, col.a, '+', nil, text)
+                    renderer.text(text_pos.x, text_pos.y, col.r, col.g, col.b, col.a, arrow_flag, nil, text)
                 end
 
                 if manual == 'right' then
                     local text = ''
 
                     local text_size = vector(
-                        renderer.measure_text('+', text)
+                        renderer.measure_text(arrow_flag, text)
                     )
 
                     local text_pos = vector(
@@ -26156,7 +26072,7 @@ local render do
                         center.y - text_size.y * 0.5 - 4.5
                     )
 
-                    renderer.text(text_pos.x, text_pos.y, col.r, col.g, col.b, col.a, '+', nil, text)
+                    renderer.text(text_pos.x, text_pos.y, col.r, col.g, col.b, col.a, arrow_flag, nil, text)
                 end
             end
 
